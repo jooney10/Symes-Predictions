@@ -5,3 +5,14 @@
 @layer base {
   body { font-family: system-ui, -apple-system, sans-serif; }
 }
+
+/* Fix iOS Safari autofill styling on dark backgrounds */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: white !important;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(0, 0, 0, 0.4) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+  caret-color: white;
+}

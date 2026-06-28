@@ -58,7 +58,6 @@ export default function Admin() {
 
   async function handleProcessResults() {
     if (!selectedGw || !session) return
-    if (!confirm(`Process results for GW${selectedGw.number}? This will calculate points and close the gameweek.`)) return
     setProcessing(true); setMessage(null)
     const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-results`, {
       method: 'POST',

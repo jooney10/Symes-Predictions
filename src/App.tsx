@@ -53,21 +53,30 @@ function Nav() {
   }
 
   return (
-    <nav className="bg-pitch-dark shadow-lg sticky top-0 z-50">
+    <nav className="sticky top-0 z-50 border-b border-white/8"
+      style={{ background: 'linear-gradient(180deg, #0a200a 0%, #0f2d0a 100%)' }}>
       <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">⚽</span>
-          <span className="text-white font-black text-lg hidden sm:block">Symes' Predictions League</span>
-          <span className="text-white font-black text-lg sm:hidden">SPL</span>
+        {/* Brand */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/15">
+            <span className="text-base">⚽</span>
+          </div>
+          <div className="hidden sm:block">
+            <div className="text-white font-black text-sm leading-tight">Symes' Predictions</div>
+            <div className="text-gold text-xs font-bold tracking-widest uppercase leading-tight">League</div>
+          </div>
+          <div className="sm:hidden text-white font-black text-base">SPL</div>
         </div>
-        <div className="flex items-center gap-1">
+
+        {/* Nav links */}
+        <div className="flex items-center gap-0.5">
           <NavLink to="/predictions" className={linkClass}>Predict</NavLink>
           <NavLink to="/table" className={linkClass}>Table</NavLink>
           <NavLink to="/results" className={linkClass}>Results</NavLink>
           {profile?.is_admin && <NavLink to="/admin" className={linkClass}>Admin</NavLink>}
           <button
             onClick={handleSignOut}
-            className="ml-2 px-3 py-2 text-sm text-green-300 hover:text-white border border-green-700 rounded-lg hover:border-green-400 transition-colors"
+            className="ml-2 px-3 py-2 text-xs text-green-300/70 hover:text-white border border-white/10 rounded-lg hover:border-white/25 transition-all font-semibold"
           >
             {profile?.display_name?.split(' ')[0]} ↗
           </button>

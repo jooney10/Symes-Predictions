@@ -15,13 +15,8 @@ export default function Login() {
     e.preventDefault()
     if (!email || !password) { setError('Please enter your email and password'); return }
     setLoading(true); setError('')
-
     const { error: signInErr } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-    if (signInErr) {
-      setError('Incorrect email or password. Try again or join the league.')
-      setLoading(false)
-      return
-    }
+    if (signInErr) { setError('Incorrect email or password.'); setLoading(false); return }
     setLoading(false)
   }
 
@@ -32,122 +27,92 @@ export default function Login() {
     if (!email.includes('@')) { setError('Please enter a valid email address'); return }
     if (password.length < 6) { setError('Password must be at least 6 characters'); return }
     setLoading(true); setError('')
-
     const { data, error: signUpErr } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
+      email: email.trim(), password,
       options: { data: { display_name: trimmed } }
     })
-
-    if (signUpErr || !data?.user) {
-      setError(signUpErr?.message ?? 'Could not create account. Try again.')
-      setLoading(false)
-      return
-    }
+    if (signUpErr || !data?.user) { setError(signUpErr?.message ?? 'Could not create account.'); setLoading(false); return }
     setLoading(false)
   }
 
-  const inputClass = "w-full px-5 py-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder-green-400/60 text-base focus:outline-none focus:border-gold focus:bg-white/15 transition-all"
+  const inputClass = "w-full px-4 py-3.5 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-gold/60 focus:bg-white/12 transition-all"
 
   return (
-    <div className="min-h-screen bg-pitch-dark flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
+      style={{ background: 'radial-gradient(ellipse at 30% 0%, #1a4a10 0%, #0f2d0a 50%, #050f03 100%)' }}>
 
-        {/* Logo */}
+      {/* Pitch line decorations */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-white/4" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full border border-white/3" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-full bg-white/3" />
+        <div className="absolute top-1/2 left-0 w-full h-px bg-white/3" />
+      </div>
+
+      <div className="w-full max-w-sm relative z-10">
+
+        {/* Badge / Logo */}
         <div className="text-center mb-8">
-          <div className="text-7xl mb-3">⚽</div>
-          <h1 className="text-4xl font-black text-white leading-tight mb-2">
-            Symes' Predictions<br />League
-          </h1>
-        </div>
-
-        {/* Mode toggle */}
-        <div className="flex rounded-xl bg-white/10 p-1 mb-6">
-          <button
-            onClick={() => { setMode('signin'); setError('') }}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${mode === 'signin' ? 'bg-gold text-black' : 'text-green-300 hover:text-white'}`}
-          >
-            Sign In
-          </button>
-          <button
-            onClick={() => { setMode('join'); setError('') }}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${mode === 'join' ? 'bg-gold text-black' : 'text-green-300 hover:text-white'}`}
-          >
-            Join the League
-          </button>
-        </div>
-
-        {/* Form */}
-        {mode === 'signin' ? (
-          <form onSubmit={handleSignIn} className="space-y-3">
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="Email address"
-              autoFocus
-              className={inputClass}
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Password"
-              className={inputClass}
-            />
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 rounded-xl bg-gold text-black font-black text-lg hover:bg-yellow-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            >
-              {loading ? 'Signing in...' : 'Sign In →'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleJoin} className="space-y-3">
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Your full name (e.g. Jonny Symes)"
-              autoFocus
-              className={inputClass}
-            />
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="Email address"
-              className={inputClass}
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Choose a password (6+ characters)"
-              className={inputClass}
-            />
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 rounded-xl bg-gold text-black font-black text-lg hover:bg-yellow-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            >
-              {loading ? 'Joining...' : 'Join the League →'}
-            </button>
-          </form>
-        )}
-
-        {/* Scoring */}
-        <div className="mt-8 grid grid-cols-2 gap-3">
-          <div className="bg-white/5 rounded-xl p-4 text-center">
-            <div className="text-2xl font-black text-green-400">3 pts</div>
-            <div className="text-green-300 text-sm mt-1">Correct result</div>
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/10 border-2 border-white/20 mb-5 shadow-2xl">
+            <span className="text-4xl">⚽</span>
           </div>
-          <div className="bg-white/5 rounded-xl p-4 text-center">
-            <div className="text-2xl font-black text-gold">5 pts</div>
-            <div className="text-green-300 text-sm mt-1">Exact score</div>
+          <h1 className="text-3xl font-black text-white tracking-tight">Symes' Predictions</h1>
+          <p className="text-gold font-bold text-sm tracking-widest uppercase mt-1">League 2026/27</p>
+        </div>
+
+        {/* Card */}
+        <div className="bg-white/8 backdrop-blur-sm rounded-2xl border border-white/12 p-6 shadow-2xl">
+
+          {/* Mode toggle */}
+          <div className="flex rounded-xl bg-black/20 p-1 mb-5">
+            <button onClick={() => { setMode('signin'); setError('') }}
+              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'signin' ? 'bg-gold text-black shadow-sm' : 'text-white/60 hover:text-white'}`}>
+              Sign In
+            </button>
+            <button onClick={() => { setMode('join'); setError('') }}
+              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'join' ? 'bg-gold text-black shadow-sm' : 'text-white/60 hover:text-white'}`}>
+              Join the League
+            </button>
+          </div>
+
+          {mode === 'signin' ? (
+            <form onSubmit={handleSignIn} className="space-y-3">
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="Email address" autoFocus className={inputClass} />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="Password" className={inputClass} />
+              {error && <p className="text-red-400 text-xs font-medium">{error}</p>}
+              <button type="submit" disabled={loading}
+                className="w-full py-3.5 rounded-xl bg-gold text-black font-black text-sm hover:bg-yellow-300 disabled:opacity-50 transition-all shadow-lg shadow-gold/20 mt-1">
+                {loading ? 'Signing in...' : 'Sign In →'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleJoin} className="space-y-3">
+              <input type="text" value={name} onChange={e => setName(e.target.value)}
+                placeholder="Your full name" autoFocus className={inputClass} />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="Email address" className={inputClass} />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="Choose a password (6+ characters)" className={inputClass} />
+              {error && <p className="text-red-400 text-xs font-medium">{error}</p>}
+              <button type="submit" disabled={loading}
+                className="w-full py-3.5 rounded-xl bg-gold text-black font-black text-sm hover:bg-yellow-300 disabled:opacity-50 transition-all shadow-lg shadow-gold/20 mt-1">
+                {loading ? 'Joining...' : 'Join the League →'}
+              </button>
+            </form>
+          )}
+        </div>
+
+        {/* Scoring pills */}
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="bg-white/6 border border-white/10 rounded-xl p-3.5 text-center">
+            <div className="text-xl font-black text-green-400">3 pts</div>
+            <div className="text-white/50 text-xs mt-0.5">Correct result</div>
+          </div>
+          <div className="bg-white/6 border border-white/10 rounded-xl p-3.5 text-center">
+            <div className="text-xl font-black text-gold">5 pts</div>
+            <div className="text-white/50 text-xs mt-0.5">Exact score</div>
           </div>
         </div>
       </div>

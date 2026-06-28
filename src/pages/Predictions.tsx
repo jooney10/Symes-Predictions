@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../App'
 import { Gameweek, Fixture, Prediction } from '../lib/types'
@@ -37,8 +37,7 @@ export default function Predictions() {
       if (!gameweek) { setLoading(false); return }
 
       const { data: fx } = await supabase
-        .from('fixtures').select('*').eq('gameweek_id', gameweek.id)
-        .order('kickoff_at')
+        .from('fixtures').select('*').eq('gameweek_id', gameweek.id).order('kickoff_at')
       setFixtures(fx ?? [])
 
       if (profile?.id) {
@@ -76,37 +75,56 @@ export default function Predictions() {
     setSaving(null)
   }
 
-  if (loading) return <Loading />
+  if (loading) return (
+    <div className="flex justify-center py-20">
+      <div className="text-pitch-light text-lg animate-pulse">Loading fixtures...</div>
+    </div>
+  )
 
   if (!gw) return (
     <div className="text-center py-20">
-      <div className="text-6xl mb-4">⏳</div>
-      <h2 className="text-2xl font-bold text-gray-700 mb-2">No fixtures yet</h2>
-      <p className="text-gray-500">Fixtures load every Saturday at 3pm. Check back soon!</p>
+      <div className="text-6xl mb-4">🏟️</div>
+      <h2 className="text-2xl font-bold text-gray-700 mb-2">Season hasn't started yet</h2>
+      <p className="text-gray-500">Fixtures will appear here once the gameweek opens.</p>
     </div>
   )
 
   const submitted = Object.keys(predictions).length
   const isOpen = gw.is_open
+  const deadlinePassed = new Date(gw.deadline_at).getTime() < Date.now()
 
   return (
     <div>
       {/* GW Header */}
-      <div className="bg-pitch-dark rounded-2xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-white font-black text-2xl">Gameweek {gw.number}</h1>
-          <p className={`text-sm font-semibold mt-1 ${isOpen ? 'text-gold' : 'text-gray-400'}`}>
-            {isOpen ? `⏱ ${timeUntil(gw.deadline_at)}` : '🔒 Predictions locked'}
-          </p>
+      <div className="rounded-2xl mb-6 overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #0f2d0a 0%, #1a4a10 100%)' }}>
+        <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-green-400 text-xs font-bold uppercase tracking-widest mb-1">2026/27 Season</p>
+            <h1 className="text-white font-black text-3xl">Gameweek {gw.number}</h1>
+            <p className={`text-sm font-semibold mt-1.5 ${deadlinePassed ? 'text-red-400' : 'text-gold'}`}>
+              {deadlinePassed ? '🔒 Predictions locked' : `⏱ ${timeUntil(gw.deadline_at)}`}
+            </p>
+          </div>
+          <div className="sm:text-right">
+            <div className="text-4xl font-black text-white">{submitted}<span className="text-green-400 text-2xl">/{fixtures.length}</span></div>
+            <div className="text-green-400 text-xs uppercase tracking-widest mt-1">Predictions entered</div>
+            {submitted === fixtures.length && (
+              <div className="mt-2 inline-flex items-center gap-1 bg-green-500/20 text-green-400 text-xs font-bold px-3 py-1 rounded-full border border-green-500/30">
+                ✓ All submitted
+              </div>
+            )}
+          </div>
         </div>
-        <div className="bg-white/10 rounded-xl px-5 py-3 text-center">
-          <div className="text-white font-black text-2xl">{submitted}<span className="text-green-400">/{fixtures.length}</span></div>
-          <div className="text-green-300 text-xs uppercase tracking-wide">Predictions entered</div>
+        {/* Progress bar */}
+        <div className="h-1 bg-black/20">
+          <div className="h-full bg-gold transition-all duration-500"
+            style={{ width: `${fixtures.length ? (submitted / fixtures.length) * 100 : 0}%` }} />
         </div>
       </div>
 
       {/* Fixtures */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {fixtures.map(fixture => {
           const pred = predictions[fixture.id]
           const sc = scores[fixture.id] ?? { h: '', a: '' }
@@ -114,67 +132,70 @@ export default function Predictions() {
           const isSaving = saving === fixture.id
 
           return (
-            <div key={fixture.id} className={`bg-white rounded-2xl shadow-sm border-2 transition-colors ${isSaved ? 'border-green-200' : 'border-gray-100'}`}>
-              <div className="px-4 pt-3 pb-1 text-center text-xs text-gray-400 uppercase tracking-wide font-medium">
-                {kickoffLabel(fixture.kickoff_at)}
+            <div key={fixture.id}
+              className={`rounded-xl border overflow-hidden transition-all ${isSaved ? 'border-green-500/40 shadow-sm shadow-green-900/20' : 'border-gray-100'} bg-white`}>
+
+              {/* Kickoff time */}
+              <div className="bg-pitch-dark px-4 py-1.5 text-center">
+                <span className="text-green-400 text-xs font-semibold uppercase tracking-wider">
+                  {kickoffLabel(fixture.kickoff_at)}
+                </span>
               </div>
-              <div className="px-4 pb-4 flex items-center justify-between gap-3">
-                {/* Home team */}
-                <div className="flex-1 text-right">
-                  <span className="font-bold text-gray-900 text-sm sm:text-base">{fixture.home_team}</span>
+
+              {/* Teams + inputs */}
+              <div className="flex items-center px-3 py-3 gap-2">
+                {/* Home */}
+                <div className="flex-1 text-right pr-2">
+                  <span className="font-black text-gray-900 text-sm sm:text-base leading-tight">{fixture.home_team}</span>
+                  <div className="text-xs text-gray-400 mt-0.5">Home</div>
                 </div>
 
                 {/* Score inputs */}
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0">
                   <input
                     type="number" min="0" max="20"
                     value={sc.h}
                     onChange={e => setScores(s => ({ ...s, [fixture.id]: { ...sc, h: e.target.value } }))}
                     onBlur={() => savePrediction(fixture.id)}
-                    disabled={!isOpen}
-                    className="w-12 h-12 text-center text-xl font-black border-2 border-pitch-light rounded-xl focus:outline-none focus:border-pitch-pale disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200"
-                    placeholder="0"
+                    disabled={!isOpen || deadlinePassed}
+                    className="w-11 h-11 text-center text-lg font-black rounded-lg border-2 border-pitch-light focus:outline-none focus:border-pitch-pale focus:ring-2 focus:ring-pitch-light/20 disabled:bg-gray-50 disabled:text-gray-300 disabled:border-gray-200 transition-all"
                   />
-                  <span className="text-2xl font-black text-gray-400">-</span>
+                  <span className="text-gray-300 font-black text-lg">–</span>
                   <input
                     type="number" min="0" max="20"
                     value={sc.a}
                     onChange={e => setScores(s => ({ ...s, [fixture.id]: { ...sc, a: e.target.value } }))}
                     onBlur={() => savePrediction(fixture.id)}
-                    disabled={!isOpen}
-                    className="w-12 h-12 text-center text-xl font-black border-2 border-pitch-light rounded-xl focus:outline-none focus:border-pitch-pale disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200"
-                    placeholder="0"
+                    disabled={!isOpen || deadlinePassed}
+                    className="w-11 h-11 text-center text-lg font-black rounded-lg border-2 border-pitch-light focus:outline-none focus:border-pitch-pale focus:ring-2 focus:ring-pitch-light/20 disabled:bg-gray-50 disabled:text-gray-300 disabled:border-gray-200 transition-all"
                   />
                 </div>
 
-                {/* Away team */}
-                <div className="flex-1 text-left">
-                  <span className="font-bold text-gray-900 text-sm sm:text-base">{fixture.away_team}</span>
+                {/* Away */}
+                <div className="flex-1 pl-2">
+                  <span className="font-black text-gray-900 text-sm sm:text-base leading-tight">{fixture.away_team}</span>
+                  <div className="text-xs text-gray-400 mt-0.5">Away</div>
                 </div>
               </div>
 
-              {/* Saved indicator */}
-              <div className={`px-4 pb-3 text-center text-xs font-semibold transition-all ${isSaving ? 'text-blue-400' : isSaved ? 'text-green-500' : 'text-transparent'}`}>
-                {isSaving ? 'Saving...' : isSaved ? '✓ Saved' : '.'}
+              {/* Status strip */}
+              <div className={`px-4 py-1.5 text-center text-xs font-bold transition-all ${
+                isSaving ? 'bg-blue-50 text-blue-500' :
+                isSaved ? 'bg-green-50 text-green-600' :
+                'bg-gray-50 text-gray-300'
+              }`}>
+                {isSaving ? '⏳ Saving...' : isSaved ? `✓ Saved — ${pred.predicted_home}–${pred.predicted_away}` : 'Enter your prediction'}
               </div>
             </div>
           )
         })}
       </div>
 
-      {!isOpen && (
+      {deadlinePassed && (
         <p className="text-center text-gray-400 text-sm mt-6">
-          The deadline has passed — predictions are now locked.
+          Deadline has passed — predictions are locked.
         </p>
       )}
-    </div>
-  )
-}
-
-function Loading() {
-  return (
-    <div className="flex justify-center py-20">
-      <div className="text-pitch-light text-lg animate-pulse">Loading fixtures...</div>
     </div>
   )
 }

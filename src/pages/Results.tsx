@@ -56,9 +56,15 @@ export default function Results() {
 
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center gap-3 mb-5">
-        <span className="text-3xl">📊</span>
-        <h1 className="text-2xl font-black text-gray-900">Results</h1>
+        <div className="w-10 h-10 rounded-xl bg-pitch-dark flex items-center justify-center">
+          <span className="text-xl">📊</span>
+        </div>
+        <div>
+          <h1 className="text-2xl font-black text-gray-900">Results</h1>
+          <p className="text-sm text-gray-400">2026/27 Season</p>
+        </div>
       </div>
 
       {/* GW Picker */}
@@ -67,10 +73,10 @@ export default function Results() {
           <button
             key={gw.id}
             onClick={() => setSelectedGw(gw)}
-            className={`shrink-0 px-4 py-2 rounded-xl font-bold text-sm transition-colors ${selectedGw?.id === gw.id ? 'bg-pitch-light text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-pitch-light'}`}
+            className={`shrink-0 px-4 py-2 rounded-xl font-bold text-sm transition-all ${selectedGw?.id === gw.id ? 'bg-pitch-dark text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-pitch-light hover:text-pitch-light'}`}
           >
             GW{gw.number}
-            {gw.results_processed_at && <span className="ml-1 text-gold">•</span>}
+            {gw.results_processed_at && <span className="ml-1.5 text-gold">✓</span>}
           </button>
         ))}
       </div>
@@ -78,59 +84,74 @@ export default function Results() {
       {loading ? (
         <div className="flex justify-center py-10"><div className="text-pitch-light animate-pulse">Loading...</div></div>
       ) : !isProcessed ? (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
-          <div className="text-3xl mb-2">⏳</div>
-          <p className="text-amber-800 font-semibold">Results for GW{selectedGw?.number} haven't been processed yet.</p>
-          <p className="text-amber-600 text-sm mt-1">Check back after the matches have been played.</p>
+        <div className="border border-amber-200 rounded-2xl p-8 text-center bg-amber-50">
+          <div className="text-4xl mb-3">⏳</div>
+          <p className="text-amber-800 font-bold text-lg">Results pending</p>
+          <p className="text-amber-600 text-sm mt-1">GW{selectedGw?.number} hasn't been processed yet. Check back after the matches.</p>
         </div>
       ) : (
         <>
           {/* My GW Summary */}
           {myResult && (
-            <div className="bg-pitch-light rounded-2xl p-5 mb-5 grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-3xl font-black text-white">{myResult.points}</div>
-                <div className="text-green-200 text-xs uppercase tracking-wide mt-1">Points</div>
-              </div>
-              <div>
-                <div className="text-3xl font-black text-white">{myResult.correct_results}</div>
-                <div className="text-green-200 text-xs uppercase tracking-wide mt-1">Results</div>
-              </div>
-              <div>
-                <div className="text-3xl font-black text-gold">{myResult.correct_scores}</div>
-                <div className="text-green-200 text-xs uppercase tracking-wide mt-1">Exact Scores</div>
+            <div className="rounded-2xl mb-5 overflow-hidden"
+              style={{ background: 'linear-gradient(135deg, #0f2d0a 0%, #1a4a10 100%)' }}>
+              <div className="p-5 grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-4xl font-black text-white">{myResult.points}</div>
+                  <div className="text-green-400 text-xs uppercase tracking-widest mt-1">Points</div>
+                </div>
+                <div>
+                  <div className="text-4xl font-black text-white">{myResult.correct_results}</div>
+                  <div className="text-green-400 text-xs uppercase tracking-widest mt-1">Correct</div>
+                </div>
+                <div>
+                  <div className="text-4xl font-black text-gold">{myResult.correct_scores}</div>
+                  <div className="text-green-400 text-xs uppercase tracking-widest mt-1">Exact</div>
+                </div>
               </div>
             </div>
           )}
 
           {/* Fixture Results */}
-          <div className="space-y-3 mb-6">
+          <div className="space-y-2.5 mb-6">
             {fixtures.map(f => {
               const pred = predictions[f.id]
               const res = results[f.id]
-              const bg = !res ? 'border-gray-100' : res.correct_score ? 'border-green-300 bg-green-50' : res.correct_result ? 'border-amber-300 bg-amber-50' : 'border-gray-200'
+              const isExact = res?.correct_score
+              const isCorrect = res?.correct_result && !isExact
+              const noPoints = res && !res.correct_result
+
               return (
-                <div key={f.id} className={`bg-white rounded-2xl border-2 ${bg} p-4`}>
-                  <div className="text-center text-xs text-gray-400 uppercase mb-2">{kickoffLabel(f.kickoff_at)}</div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="flex-1 text-right font-bold text-gray-900 text-sm">{f.home_team}</span>
-                    <div className="text-center shrink-0 min-w-[120px]">
-                      <div className="text-2xl font-black text-gray-900">{f.home_score} - {f.away_score}</div>
-                      {pred ? (
-                        <div className="text-xs text-gray-500 mt-0.5">Your pick: {pred.predicted_home}-{pred.predicted_away}</div>
-                      ) : (
-                        <div className="text-xs text-red-400 mt-0.5">No pick</div>
-                      )}
-                    </div>
-                    <span className="flex-1 text-left font-bold text-gray-900 text-sm">{f.away_team}</span>
+                <div key={f.id} className={`rounded-xl border-2 overflow-hidden ${
+                  isExact ? 'border-green-400' :
+                  isCorrect ? 'border-amber-400' :
+                  noPoints ? 'border-gray-200' :
+                  'border-gray-100'
+                } bg-white`}>
+                  <div className="bg-pitch-dark px-4 py-1.5 text-center">
+                    <span className="text-green-400 text-xs font-semibold uppercase tracking-wider">{kickoffLabel(f.kickoff_at)}</span>
                   </div>
-                  {res && (
-                    <div className="text-center mt-2">
-                      {res.correct_score && <span className="inline-block bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">⭐ Exact score! +5pts</span>}
-                      {!res.correct_score && res.correct_result && <span className="inline-block bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">✓ Correct result +3pts</span>}
-                      {!res.correct_result && <span className="inline-block bg-gray-300 text-gray-600 text-xs font-bold px-3 py-1 rounded-full">No points</span>}
+                  <div className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="flex-1 text-right font-black text-gray-900">{f.home_team}</span>
+                      <div className="text-center shrink-0 min-w-[100px]">
+                        <div className="text-3xl font-black text-gray-900 leading-none">{f.home_score}–{f.away_score}</div>
+                        {pred ? (
+                          <div className="text-xs text-gray-400 mt-1">Your pick: {pred.predicted_home}–{pred.predicted_away}</div>
+                        ) : (
+                          <div className="text-xs text-red-400 mt-1">No pick</div>
+                        )}
+                      </div>
+                      <span className="flex-1 text-left font-black text-gray-900">{f.away_team}</span>
                     </div>
-                  )}
+                    {res && (
+                      <div className="text-center mt-2.5">
+                        {isExact && <span className="inline-flex items-center gap-1.5 bg-green-500 text-white text-xs font-black px-3 py-1.5 rounded-full">⭐ Exact score! +5pts</span>}
+                        {isCorrect && <span className="inline-flex items-center gap-1.5 bg-amber-500 text-white text-xs font-black px-3 py-1.5 rounded-full">✓ Correct result +3pts</span>}
+                        {noPoints && <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 text-xs font-bold px-3 py-1.5 rounded-full">No points</span>}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )
             })}
@@ -139,14 +160,17 @@ export default function Results() {
           {/* GW Mini Table */}
           {gwStandings.length > 0 && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="bg-pitch-dark px-4 py-3 text-white font-bold text-sm">GW{selectedGw?.number} Standings</div>
+              <div className="bg-pitch-dark px-4 py-3 text-white font-black text-sm tracking-wide">GW{selectedGw?.number} Standings</div>
               {gwStandings.map((s: any, i: number) => (
                 <div key={s.user_id} className={`flex items-center justify-between px-4 py-3 border-b border-gray-50 last:border-0 ${s.user_id === profile?.id ? 'bg-green-50' : ''}`}>
                   <div className="flex items-center gap-3">
-                    <span className="text-gray-400 text-sm w-5">{i + 1}</span>
-                    <span className={`font-semibold text-sm ${s.user_id === profile?.id ? 'text-pitch-light' : 'text-gray-900'}`}>{s.profiles?.display_name ?? 'Unknown'}</span>
+                    <span className="text-gray-400 text-sm w-5 font-bold">{i + 1}</span>
+                    <span className={`font-bold text-sm ${s.user_id === profile?.id ? 'text-pitch-light' : 'text-gray-900'}`}>
+                      {s.profiles?.display_name ?? 'Unknown'}
+                      {s.user_id === profile?.id && <span className="text-gray-400 font-normal ml-1 text-xs">(you)</span>}
+                    </span>
                   </div>
-                  <span className="font-black text-lg text-gray-900">{s.points}pts</span>
+                  <span className="font-black text-lg text-gray-900">{s.points}<span className="text-gray-400 text-sm font-normal">pts</span></span>
                 </div>
               ))}
             </div>

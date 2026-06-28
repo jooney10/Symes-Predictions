@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0f2d0a"/>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <defs>
+    <radialGradient id="g" cx="35%" cy="25%" r="75%">
+      <stop offset="0%" stop-color="#1a4a10"/>
+      <stop offset="100%" stop-color="#0a1f07"/>
+    </radialGradient>
+  </defs>
+  <!-- Football -->
+  <text x="256" y="310" font-size="220" text-anchor="middle" dominant-baseline="middle">⚽</text>
+  <!-- SPL label -->
+  <text x="256" y="430" font-size="72" font-weight="900" font-family="Arial Black, sans-serif" text-anchor="middle" fill="#f5c518" letter-spacing="8">SPL</text>
+</svg>

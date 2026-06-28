@@ -3,6 +3,14 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../App'
 import { Gameweek, Fixture } from '../lib/types'
 
+interface Player {
+  id: string
+  display_name: string
+  email: string
+  is_admin: boolean
+  created_at: string
+}
+
 function formatDeadline(d: string) {
   return new Date(d).toLocaleDateString('en-GB', {
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
@@ -19,12 +27,15 @@ function gwStatus(gw: Gameweek): { label: string; colour: string } {
 
 export default function Admin() {
   const { profile, session } = useAuth()
+  const [tab, setTab] = useState<'fixtures' | 'players'>('fixtures')
   const [gameweeks, setGameweeks] = useState<Gameweek[]>([])
   const [selectedGw, setSelectedGw] = useState<Gameweek | null>(null)
   const [fixtures, setFixtures] = useState<Fixture[]>([])
   const [scores, setScores] = useState<Record<number, { h: string; a: string }>>({})
   const [processing, setProcessing] = useState(false)
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [players, setPlayers] = useState<Player[]>([])
+  const [loadingPlayers, setLoadingPlayers] = useState(false)
 
   async function loadGameweeks() {
     const { data } = await supabase.from('gameweeks').select('*').order('number', { ascending: true })
@@ -34,6 +45,13 @@ export default function Admin() {
   }
 
   useEffect(() => { loadGameweeks() }, [])
+
+  useEffect(() => {
+    if (tab !== 'players' || players.length > 0) return
+    setLoadingPlayers(true)
+    supabase.from('profiles').select('*').order('created_at', { ascending: true })
+      .then(({ data }) => { setPlayers(data ?? []); setLoadingPlayers(false) })
+  }, [tab])
 
   useEffect(() => {
     if (!selectedGw) return
@@ -134,6 +152,60 @@ export default function Admin() {
         </div>
       </div>
 
+      {/* Tab switcher */}
+      <div className="flex rounded-xl bg-gray-100 p-1 mb-5">
+        <button onClick={() => setTab('fixtures')}
+          className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${tab === 'fixtures' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+          🏟 Fixtures
+        </button>
+        <button onClick={() => setTab('players')}
+          className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${tab === 'players' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+          👥 Players {players.length > 0 && <span className="ml-1 text-xs text-gray-400">({players.length})</span>}
+        </button>
+      </div>
+
+      {/* Players tab */}
+      {tab === 'players' && (
+        <div>
+          {loadingPlayers ? (
+            <div className="flex justify-center py-10"><div className="text-pitch-light animate-pulse">Loading players...</div></div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-pitch-dark px-4 py-3 flex items-center justify-between">
+                <span className="text-white font-black text-sm">Registered Players</span>
+                <span className="text-green-400 text-sm font-bold">{players.length} total</span>
+              </div>
+              {players.map((p, i) => (
+                <div key={p.id} className={`flex items-center justify-between px-4 py-3.5 border-b border-gray-50 last:border-0 ${p.id === profile?.id ? 'bg-green-50' : ''}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-pitch-dark flex items-center justify-center text-white text-xs font-black shrink-0">
+                      {p.display_name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                        {p.display_name}
+                        {p.id === profile?.id && <span className="text-xs text-gray-400 font-normal">(you)</span>}
+                        {p.is_admin && <span className="text-xs bg-gold/20 text-amber-700 font-bold px-1.5 py-0.5 rounded">Admin</span>}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-0.5">{p.email}</div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400 text-right shrink-0">
+                    Joined {new Date(p.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}
+                  </div>
+                </div>
+              ))}
+              {players.length === 0 && (
+                <div className="py-10 text-center text-gray-400 text-sm">No players registered yet.</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Fixtures tab */}
+      {tab === 'fixtures' && <>
+
       {/* Import / Sync */}
       <button onClick={handleImportSeason} disabled={processing}
         className="w-full mb-5 py-3.5 rounded-xl bg-pitch-dark text-white font-bold hover:bg-pitch-mid disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
@@ -233,6 +305,8 @@ export default function Admin() {
           )}
         </div>
       )}
+
+      </>}
     </div>
   )
 }

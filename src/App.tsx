@@ -8,6 +8,7 @@ import Predictions from './pages/Predictions'
 import Table from './pages/Table'
 import Results from './pages/Results'
 import Admin from './pages/Admin'
+import About from './pages/About'
 
 // ── Auth context ──────────────────────────────────────────────
 interface AuthCtx { session: Session | null; profile: Profile | null; loading: boolean }
@@ -73,6 +74,7 @@ function Nav() {
           <NavLink to="/predictions" className={linkClass}>Predict</NavLink>
           <NavLink to="/table" className={linkClass}>Table</NavLink>
           <NavLink to="/results" className={linkClass}>Results</NavLink>
+          <NavLink to="/about" className={linkClass}>About</NavLink>
           {profile?.is_admin && <NavLink to="/admin" className={linkClass}>Admin</NavLink>}
           <button
             onClick={handleSignOut}
@@ -110,6 +112,7 @@ export default function App() {
                   <Route path="/table" element={<Table />} />
                   <Route path="/results" element={<Results />} />
                   <Route path="/admin" element={<Admin />} />
+                  <Route path="/about" element={<About />} />
                   <Route path="*" element={<Navigate to="/predictions" replace />} />
                 </Routes>
               </main>

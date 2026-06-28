@@ -3,6 +3,20 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../App'
 import { Gameweek, Fixture } from '../lib/types'
 
+function formatDeadline(d: string) {
+  return new Date(d).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+  })
+}
+
+function gwStatus(gw: Gameweek): { label: string; colour: string } {
+  if (gw.results_processed_at) return { label: '✅ Done', colour: 'text-green-600' }
+  if (gw.is_open) return { label: '🟢 Open', colour: 'text-green-500' }
+  const deadlinePassed = new Date(gw.deadline_at).getTime() < Date.now()
+  if (deadlinePassed) return { label: '🔒 Locked', colour: 'text-amber-500' }
+  return { label: '⏳ Upcoming', colour: 'text-gray-400' }
+}
+
 export default function Admin() {
   const { profile, session } = useAuth()
   const [gameweeks, setGameweeks] = useState<Gameweek[]>([])
@@ -12,13 +26,14 @@ export default function Admin() {
   const [processing, setProcessing] = useState(false)
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
-  useEffect(() => {
-    supabase.from('gameweeks').select('*').order('number', { ascending: false })
-      .then(({ data }) => {
-        setGameweeks(data ?? [])
-        setSelectedGw(data?.[0] ?? null)
-      })
-  }, [])
+  async function loadGameweeks() {
+    const { data } = await supabase.from('gameweeks').select('*').order('number', { ascending: true })
+    const gws = data ?? []
+    setGameweeks(gws)
+    if (!selectedGw) setSelectedGw(gws[0] ?? null)
+  }
+
+  useEffect(() => { loadGameweeks() }, [])
 
   useEffect(() => {
     if (!selectedGw) return
@@ -39,6 +54,39 @@ export default function Admin() {
   )
 
   const isProcessed = selectedGw?.results_processed_at != null
+
+  async function handleImportSeason() {
+    if (!session) return
+    setProcessing(true); setMessage(null)
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-fixtures`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: '{}',
+    })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setMessage({ type: 'err', text: json.error ?? `Error (${res.status}) — check edge function logs` })
+    } else {
+      setMessage({ type: 'ok', text: `✅ Synced ${json.fixtures} fixtures across ${json.gameweeks} gameweeks` })
+      await loadGameweeks()
+    }
+    setProcessing(false)
+  }
+
+  async function handleToggleOpen() {
+    if (!selectedGw) return
+    setProcessing(true)
+    const { data } = await supabase.from('gameweeks')
+      .update({ is_open: !selectedGw.is_open })
+      .eq('id', selectedGw.id)
+      .select().single()
+    if (data) {
+      const updated = { ...selectedGw, is_open: data.is_open }
+      setSelectedGw(updated)
+      setGameweeks(gws => gws.map(g => g.id === updated.id ? updated : g))
+    }
+    setProcessing(false)
+  }
 
   async function handleSaveScores() {
     if (!selectedGw) return
@@ -63,47 +111,50 @@ export default function Admin() {
     if (error) {
       setMessage({ type: 'err', text: error.message ?? 'Error processing results' })
     } else {
+      const updated = { ...selectedGw, is_open: false, results_processed_at: new Date().toISOString() }
+      setSelectedGw(updated)
+      setGameweeks(gws => gws.map(g => g.id === updated.id ? updated : g))
       setMessage({ type: 'ok', text: `✅ GW${selectedGw.number} results processed! Points updated for all players.` })
-      setSelectedGw(prev => prev ? { ...prev, is_open: false, results_processed_at: new Date().toISOString() } : prev)
     }
     setProcessing(false)
   }
 
-  async function handleFetchFixtures() {
-    if (!session) return
-    setProcessing(true); setMessage(null)
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-fixtures`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: '{}',
-    })
-    const json = await res.json()
-    if (!res.ok) setMessage({ type: 'err', text: json.error ?? 'Error fetching fixtures' })
-    else setMessage({ type: 'ok', text: `✅ Fetched ${json.fixtures} fixtures for GW${json.gameweek}` })
-    setProcessing(false)
-  }
+  const status = selectedGw ? gwStatus(selectedGw) : null
 
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <span className="text-3xl">⚙️</span>
-        <h1 className="text-2xl font-black text-gray-900">Admin Panel</h1>
+        <div className="w-10 h-10 rounded-xl bg-pitch-dark flex items-center justify-center">
+          <span className="text-xl">⚙️</span>
+        </div>
+        <div>
+          <h1 className="text-2xl font-black text-gray-900">Admin Panel</h1>
+          <p className="text-sm text-gray-400">2026/27 Season</p>
+        </div>
       </div>
 
-      {/* Actions */}
-      <button onClick={handleFetchFixtures} disabled={processing}
-        className="w-full mb-5 py-3 rounded-xl bg-pitch-light text-white font-bold hover:bg-pitch-pale disabled:opacity-50 transition-colors">
-        🔄 Fetch Next Fixtures from API
+      {/* Import / Sync */}
+      <button onClick={handleImportSeason} disabled={processing}
+        className="w-full mb-5 py-3.5 rounded-xl bg-pitch-dark text-white font-bold hover:bg-pitch-mid disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+        🔄 Import / Sync 2026/27 Season
       </button>
 
       {/* GW Picker */}
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-5">
-        {gameweeks.map(gw => (
-          <button key={gw.id} onClick={() => setSelectedGw(gw)}
-            className={`shrink-0 px-4 py-2 rounded-xl font-bold text-sm transition-colors ${selectedGw?.id === gw.id ? 'bg-pitch-light text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-pitch-light'}`}>
-            GW{gw.number}{gw.results_processed_at ? ' ✅' : ''}
-          </button>
-        ))}
+      <div className="flex gap-1.5 overflow-x-auto pb-2 mb-5">
+        {gameweeks.map(gw => {
+          const s = gwStatus(gw)
+          const isSelected = selectedGw?.id === gw.id
+          return (
+            <button key={gw.id} onClick={() => setSelectedGw(gw)}
+              className={`shrink-0 px-3 py-2 rounded-xl font-bold text-xs transition-all ${isSelected ? 'bg-pitch-dark text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-pitch-light'}`}>
+              GW{gw.number}
+              <span className={`block text-center mt-0.5 ${isSelected ? 'text-green-300' : s.colour} text-xs font-normal`}>
+                {gw.results_processed_at ? '✅' : gw.is_open ? '🟢' : '–'}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       {message && (
@@ -114,37 +165,61 @@ export default function Admin() {
 
       {selectedGw && (
         <div>
-          <h2 className="font-bold text-gray-700 mb-3">
-            GW{selectedGw.number} Scores {isProcessed && <span className="text-green-500 text-sm">✅ Processed</span>}
-          </h2>
-
-          <div className="space-y-2 mb-5">
-            {fixtures.map(f => (
-              <div key={f.id} className="bg-white rounded-xl border border-gray-200 p-3 flex items-center gap-3">
-                <span className="flex-1 text-right text-sm font-semibold text-gray-900">{f.home_team}</span>
-                <div className="flex items-center gap-2">
-                  <input type="number" min="0" max="20"
-                    value={scores[f.id]?.h ?? ''}
-                    onChange={e => setScores(s => ({ ...s, [f.id]: { ...s[f.id], h: e.target.value } }))}
-                    disabled={isProcessed}
-                    className="w-12 h-10 text-center font-black text-lg border-2 border-pitch-light rounded-lg disabled:bg-gray-100 disabled:border-gray-200 focus:outline-none"
-                    placeholder="0"
-                  />
-                  <span className="font-black text-gray-400">-</span>
-                  <input type="number" min="0" max="20"
-                    value={scores[f.id]?.a ?? ''}
-                    onChange={e => setScores(s => ({ ...s, [f.id]: { ...s[f.id], a: e.target.value } }))}
-                    disabled={isProcessed}
-                    className="w-12 h-10 text-center font-black text-lg border-2 border-pitch-light rounded-lg disabled:bg-gray-100 disabled:border-gray-200 focus:outline-none"
-                    placeholder="0"
-                  />
-                </div>
-                <span className="flex-1 text-left text-sm font-semibold text-gray-900">{f.away_team}</span>
-              </div>
-            ))}
+          {/* GW Info bar */}
+          <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4 flex items-center justify-between">
+            <div>
+              <div className="font-black text-gray-900 text-lg">Gameweek {selectedGw.number}</div>
+              <div className="text-xs text-gray-400 mt-0.5">Deadline: {formatDeadline(selectedGw.deadline_at)}</div>
+              <div className={`text-sm font-bold mt-1 ${status?.colour}`}>{status?.label}</div>
+            </div>
+            {!isProcessed && (
+              <button onClick={handleToggleOpen} disabled={processing}
+                className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${selectedGw.is_open
+                  ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+                  : 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                } disabled:opacity-50`}>
+                {selectedGw.is_open ? '🔒 Lock GW' : '🟢 Open GW'}
+              </button>
+            )}
           </div>
 
-          {!isProcessed && (
+          {/* Fixtures / Scores */}
+          {fixtures.length === 0 ? (
+            <div className="text-center py-8 text-gray-400 border border-dashed border-gray-200 rounded-xl">
+              No fixtures yet — import the season first.
+            </div>
+          ) : (
+            <div className="space-y-2 mb-5">
+              {fixtures.map(f => (
+                <div key={f.id} className="bg-white rounded-xl border border-gray-200 p-3 flex items-center gap-3">
+                  <div className="flex-1 text-right">
+                    <div className="text-sm font-bold text-gray-900">{f.home_team}</div>
+                    <div className="text-xs text-gray-400">{new Date(f.kickoff_at).toLocaleDateString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <input type="number" min="0" max="20"
+                      value={scores[f.id]?.h ?? ''}
+                      onChange={e => setScores(s => ({ ...s, [f.id]: { ...s[f.id], h: e.target.value } }))}
+                      disabled={isProcessed}
+                      className="w-12 h-10 text-center font-black text-lg border-2 border-pitch-light rounded-lg disabled:bg-gray-100 disabled:border-gray-200 focus:outline-none"
+                      placeholder="0"
+                    />
+                    <span className="font-black text-gray-300">–</span>
+                    <input type="number" min="0" max="20"
+                      value={scores[f.id]?.a ?? ''}
+                      onChange={e => setScores(s => ({ ...s, [f.id]: { ...s[f.id], a: e.target.value } }))}
+                      disabled={isProcessed}
+                      className="w-12 h-10 text-center font-black text-lg border-2 border-pitch-light rounded-lg disabled:bg-gray-100 disabled:border-gray-200 focus:outline-none"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="flex-1 text-sm font-bold text-gray-900">{f.away_team}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!isProcessed && fixtures.length > 0 && (
             <div className="grid grid-cols-2 gap-3">
               <button onClick={handleSaveScores} disabled={processing}
                 className="py-3 rounded-xl bg-pitch-light text-white font-bold hover:bg-pitch-pale disabled:opacity-50 transition-colors">

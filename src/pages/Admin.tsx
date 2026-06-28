@@ -57,16 +57,12 @@ export default function Admin() {
   }
 
   async function handleProcessResults() {
-    if (!selectedGw || !session) return
+    if (!selectedGw) return
     setProcessing(true); setMessage(null)
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-results`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ gameweek_id: selectedGw.id }),
-    })
-    const json = await res.json()
-    if (!res.ok) { setMessage({ type: 'err', text: json.error ?? 'Error processing results' }) }
-    else {
+    const { error } = await supabase.rpc('process_gameweek_results', { p_gameweek_id: selectedGw.id })
+    if (error) {
+      setMessage({ type: 'err', text: error.message ?? 'Error processing results' })
+    } else {
       setMessage({ type: 'ok', text: `✅ GW${selectedGw.number} results processed! Points updated for all players.` })
       setSelectedGw(prev => prev ? { ...prev, is_open: false, results_processed_at: new Date().toISOString() } : prev)
     }

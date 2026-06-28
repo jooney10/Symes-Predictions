@@ -54,37 +54,64 @@ function Nav() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-white/8"
-      style={{ background: 'linear-gradient(180deg, #0a200a 0%, #0f2d0a 100%)' }}>
-      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-        {/* Brand */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/15">
-            <span className="text-base">⚽</span>
+    <>
+      {/* Top nav */}
+      <nav className="sticky top-0 z-50 border-b border-white/8"
+        style={{ background: 'linear-gradient(180deg, #0a200a 0%, #0f2d0a 100%)' }}>
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+          {/* Brand */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/15">
+              <span className="text-base">⚽</span>
+            </div>
+            <div>
+              <div className="text-white font-black text-sm leading-tight">Symes' Predictions</div>
+              <div className="text-gold text-xs font-bold tracking-widest uppercase leading-tight">League</div>
+            </div>
           </div>
-          <div className="hidden sm:block">
-            <div className="text-white font-black text-sm leading-tight">Symes' Predictions</div>
-            <div className="text-gold text-xs font-bold tracking-widest uppercase leading-tight">League</div>
-          </div>
-          <div className="sm:hidden text-white font-black text-base">SPL</div>
-        </div>
 
-        {/* Nav links */}
-        <div className="flex items-center gap-0.5">
-          <NavLink to="/predictions" className={linkClass}>Predict</NavLink>
-          <NavLink to="/table" className={linkClass}>Table</NavLink>
-          <NavLink to="/results" className={linkClass}>Results</NavLink>
-          <NavLink to="/about" className={linkClass}>About</NavLink>
-          {profile?.is_admin && <NavLink to="/admin" className={linkClass}>Admin</NavLink>}
-          <button
-            onClick={handleSignOut}
-            className="ml-2 px-3 py-2 text-xs text-green-300/70 hover:text-white border border-white/10 rounded-lg hover:border-white/25 transition-all font-semibold"
-          >
+          {/* Desktop nav links */}
+          <div className="hidden sm:flex items-center gap-0.5">
+            <NavLink to="/predictions" className={linkClass}>Predict</NavLink>
+            <NavLink to="/table" className={linkClass}>Table</NavLink>
+            <NavLink to="/results" className={linkClass}>Results</NavLink>
+            <NavLink to="/about" className={linkClass}>About</NavLink>
+            {profile?.is_admin && <NavLink to="/admin" className={linkClass}>Admin</NavLink>}
+            <button onClick={handleSignOut}
+              className="ml-2 px-3 py-2 text-xs text-green-300/70 hover:text-white border border-white/10 rounded-lg hover:border-white/25 transition-all font-semibold">
+              {profile?.display_name?.split(' ')[0]} ↗
+            </button>
+          </div>
+
+          {/* Mobile: just sign out */}
+          <button onClick={handleSignOut} className="sm:hidden px-3 py-1.5 text-xs text-green-300/70 border border-white/10 rounded-lg font-semibold">
             {profile?.display_name?.split(' ')[0]} ↗
           </button>
         </div>
+      </nav>
+
+      {/* Mobile bottom tab bar */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 pb-safe"
+        style={{ background: 'linear-gradient(0deg, #0a200a 0%, #0f2d0a 100%)' }}>
+        <div className="flex">
+          {[
+            { to: '/predictions', icon: '⚽', label: 'Predict' },
+            { to: '/table', icon: '🏆', label: 'Table' },
+            { to: '/results', icon: '📊', label: 'Results' },
+            { to: '/about', icon: '📖', label: 'About' },
+            ...(profile?.is_admin ? [{ to: '/admin', icon: '⚙️', label: 'Admin' }] : []),
+          ].map(({ to, icon, label }) => (
+            <NavLink key={to} to={to}
+              className={({ isActive }) =>
+                `flex-1 flex flex-col items-center justify-center py-2.5 text-center transition-colors ${isActive ? 'text-gold' : 'text-green-600 hover:text-green-300'}`
+              }>
+              <span className="text-xl leading-none">{icon}</span>
+              <span className="text-xs font-semibold mt-0.5">{label}</span>
+            </NavLink>
+          ))}
+        </div>
       </div>
-    </nav>
+    </>
   )
 }
 
@@ -106,7 +133,7 @@ export default function App() {
           <Route path="/*" element={
             <Protected>
               <Nav />
-              <main className="max-w-5xl mx-auto px-4 py-6">
+              <main className="max-w-5xl mx-auto px-4 py-6 pb-24 sm:pb-6">
                 <Routes>
                   <Route path="/predictions" element={<Predictions />} />
                   <Route path="/table" element={<Table />} />

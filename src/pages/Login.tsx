@@ -35,7 +35,8 @@ export default function Login() {
     setLoading(false)
   }
 
-  const inputClass = "w-full px-4 py-3.5 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-gold/60 focus:bg-white/12 transition-all"
+  const inputClass = "w-full px-4 py-3.5 rounded-xl border border-white/20 text-white text-sm focus:outline-none focus:border-gold/70 transition-all appearance-none"
+  const inputStyle = { background: 'rgba(0,0,0,0.35)', WebkitTextFillColor: 'white' }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
@@ -78,9 +79,9 @@ export default function Login() {
           {mode === 'signin' ? (
             <form onSubmit={handleSignIn} className="space-y-3">
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="Email address" autoFocus className={inputClass} />
+                placeholder="Email address" autoFocus className={inputClass} style={inputStyle} />
               <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="Password" className={inputClass} />
+                placeholder="Password" className={inputClass} style={inputStyle} />
               {error && <p className="text-red-400 text-xs font-medium">{error}</p>}
               <button type="submit" disabled={loading}
                 className="w-full py-3.5 rounded-xl bg-gold text-black font-black text-sm hover:bg-yellow-300 disabled:opacity-50 transition-all shadow-lg shadow-gold/20 mt-1">
@@ -90,11 +91,11 @@ export default function Login() {
           ) : (
             <form onSubmit={handleJoin} className="space-y-3">
               <input type="text" value={name} onChange={e => setName(e.target.value)}
-                placeholder="Your full name" autoFocus className={inputClass} />
+                placeholder="Your full name" autoFocus className={inputClass} style={inputStyle} />
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="Email address" className={inputClass} />
+                placeholder="Email address" className={inputClass} style={inputStyle} />
               <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="Choose a password (6+ characters)" className={inputClass} />
+                placeholder="Choose a password (6+ characters)" className={inputClass} style={inputStyle} />
               {error && <p className="text-red-400 text-xs font-medium">{error}</p>}
               <button type="submit" disabled={loading}
                 className="w-full py-3.5 rounded-xl bg-gold text-black font-black text-sm hover:bg-yellow-300 disabled:opacity-50 transition-all shadow-lg shadow-gold/20 mt-1">
